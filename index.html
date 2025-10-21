@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小说搜索下载器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Microsoft YaHei',sans-serif;}
+body{
+  background:linear-gradient(135deg,#6a11cb 0%,#2575fc 100%);
+  color:#333;line-height:1.6;padding:20px;min-height:100vh;
+}
+.container{
+  max-width:800px;margin:0 auto;background:white;border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);padding:30px;position:relative;
+}
+header{text-align:center;margin-bottom:30px;}
+h1{color:#2c3e50;margin-bottom:10px;font-size:2.2rem;}
+.description{color:#7f8c8d;margin-bottom:20px;font-size:1.1rem;}
+.top-bar{
+  position:absolute;top:20px;right:30px;display:flex;gap:10px;
+}
+.top-bar button{
+  background:linear-gradient(90deg,#6a11cb,#2575fc);
+  color:white;padding:8px 15px;border:none;border-radius:8px;
+  cursor:pointer;font-weight:bold;transition:all 0.3s;
+}
+.top-bar button:hover{transform:scale(1.05);}
+.search-box{
+  display:flex;margin-bottom:30px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+  border-radius:50px;overflow:hidden;
+}
+#search-input{
+  flex:1;padding:15px 20px;border:none;font-size:16px;
+  outline:none;background:#f8f9fa;
+}
+#search-btn{
+  background:linear-gradient(90deg,#6a11cb,#2575fc);
+  color:white;border:none;padding:15px 30px;cursor:pointer;
+  font-size:16px;font-weight:bold;transition:all 0.3s;
+}
+#search-btn:hover{background:linear-gradient(90deg,#5a0db9,#1c68e8);transform:translateY(-2px);}
+.loading{text-align:center;padding:30px;display:none;}
+.spinner{
+  border:4px solid rgba(0,0,0,0.1);border-left-color:#3498db;
+  border-radius:50%;width:40px;height:40px;
+  animation:spin 1s linear infinite;margin:0 auto 15px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.results{display:none;animation:fadeIn 0.5s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.result-count{text-align:center;color:#7f8c8d;margin-bottom:20px;font-size:1.1rem;}
+.result-item{
+  border:1px solid #eee;border-radius:10px;padding:20px;margin-bottom:20px;
+  background:#f8f9fa;transition:all 0.3s;
+}
+.result-item:hover{box-shadow:0 5px 15px rgba(0,0,0,0.1);transform:translateY(-5px);}
+.result-title{font-size:1.3rem;font-weight:bold;color:#2c3e50;margin-bottom:8px;}
+.result-author{color:#7f8c8d;margin-bottom:12px;font-size:1rem;}
+.result-description{margin-bottom:15px;color:#555;}
+.download-btn{
+  background:linear-gradient(90deg,#27ae60,#2ecc71);color:white;border:none;
+  padding:10px 20px;border-radius:5px;cursor:pointer;font-size:14px;font-weight:bold;
+  transition:all 0.3s;display:inline-flex;align-items:center;gap:8px;
+}
+.download-btn:hover{
+  background:linear-gradient(90deg,#219653,#27ae60);
+  transform:translateY(-2px);
+}
+.download-btn::before{content:'↓';font-weight:bold;}
+.error{
+  color:#e74c3c;text-align:center;padding:20px;background:#ffeaea;
+  border-radius:10px;display:none;margin-bottom:20px;
+}
+footer{text-align:center;margin-top:30px;color:#7f8c8d;font-size:14px;
+  padding-top:20px;border-top:1px solid #eee;
+}
+.instructions{background:#e8f4fd;border-radius:10px;padding:20px;margin-bottom:30px;border-left:4px solid #3498db;}
+.instructions h3{color:#2c3e50;margin-bottom:10px;}
+.instructions p{color:#555;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top-bar">
+    <button id="login-btn">登录</button>
+    <button id="register-btn">注册</button>
+    <button id="logout-btn" style="display:none;background:#e74c3c;">退出</button>
+  </div>
+
+  <header>
+    <h1>📚 小说搜索下载器</h1>
+    <p class="description">搜索并下载您喜欢的小说</p>
+  </header>
+
+  <div class="instructions">
+    <h3>使用说明</h3>
+    <p>1. 输入小说名称搜索。</p>
+    <p>2. 点击下载按钮，如未登录将跳转到登录页面。</p>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="search-input" placeholder="请输入小说名称...">
+    <button id="search-btn">搜索</button>
+  </div>
+
+  <div class="loading"><div class="spinner"></div><p>正在搜索中...</p></div>
+  <div class="error" id="error-message"></div>
+
+  <div class="results" id="results-container">
+    <div class="result-count" id="result-count"></div>
+    <div id="results-list"></div>
+  </div>
+
+  <footer><p>API来源：小尘API | 后端代理解决CORS</p></footer>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const loginBtn=document.getElementById('login-btn');
+  const registerBtn=document.getElementById('register-btn');
+  const logoutBtn=document.getElementById('logout-btn');
+  const token=localStorage.getItem('token');
+
+  if(token){
+    loginBtn.style.display='none';
+    registerBtn.style.display='none';
+    logoutBtn.style.display='inline-block';
+  }
+
+  logoutBtn.addEventListener('click',()=>{
+    localStorage.removeItem('token');
+    alert('已退出登录');
+    location.reload();
+  });
+
+  loginBtn.addEventListener('click',()=>window.location.href='login.html');
+  registerBtn.addEventListener('click',()=>window.location.href='register.html');
+
+  const searchBtn=document.getElementById('search-btn');
+  const searchInput=document.getElementById('search-input');
+  const loading=document.querySelector('.loading');
+  const errorMessage=document.getElementById('error-message');
+  const resultsContainer=document.getElementById('results-container');
+  const resultCount=document.getElementById('result-count');
+  const resultsList=document.getElementById('results-list');
+  const proxyUrl='/api/search';
+
+  searchBtn.addEventListener('click',performSearch);
+  searchInput.addEventListener('keypress',e=>{if(e.key==='Enter')performSearch();});
+
+  async function performSearch(){
+    const query=searchInput.value.trim();
+    if(!query)return showError('请输入小说名称');
+    loading.style.display='block';
+    resultsContainer.style.display='none';
+    errorMessage.style.display='none';
+    try{
+      const res=await fetch(`${proxyUrl}?q=${encodeURIComponent(query)}`);
+      const data=await res.json();
+      loading.style.display='none';
+      if(data.status==='success'&&data.count>0)displayResults(data);
+      else showError('未找到相关小说');
+    }catch(e){
+      loading.style.display='none';
+      showError('搜索失败：'+e.message);
+    }
+  }
+
+  function displayResults(data){
+    resultCount.textContent=`找到 ${data.count} 本相关小说`;
+    resultsList.innerHTML='';
+    data.results.forEach(item=>{
+      const div=document.createElement('div');
+      div.className='result-item';
+      div.innerHTML=`
+        <div class="result-title">${item.title}</div>
+        <div class="result-author">作者: ${item.author}</div>
+        <div class="result-description">${item.description||'暂无简介'}</div>
+        <button class="download-btn" data-url="${item.url}" data-title="${item.title}">下载小说</button>`;
+      resultsList.appendChild(div);
+    });
+    document.querySelectorAll('.download-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const url=btn.dataset.url;
+        const title=btn.dataset.title;
+        if(!localStorage.getItem('token')){
+          alert('下载需要登录，请先登录');
+          window.location.href='login.html';
+          return;
+        }
+        downloadNovel(url,title);
+      });
+    });
+    resultsContainer.style.display='block';
+  }
+
+  async function downloadNovel(url,title){
+    const token=localStorage.getItem('token');
+    const apiUrl=`/api/download?url=${encodeURIComponent(url)}&filename=${encodeURIComponent(title+'.zip')}`;
+    try{
+      const resp=await fetch(apiUrl,{headers:{'Authorization':'Bearer '+token}});
+      if(!resp.ok) throw new Error('下载失败');
+      const blob=await resp.blob();
+      const blobUrl=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=blobUrl;a.download=title+'.zip';a.click();
+      URL.revokeObjectURL(blobUrl);
+    }catch(e){alert('下载错误：'+e.message);}
+  }
+
+  function showError(msg){
+    errorMessage.textContent=msg;
+    errorMessage.style.display='block';
+    resultsContainer.style.display='none';
+  }
+});
+</script>
+</body>
+</html>

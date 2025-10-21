@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注册 - 小说下载器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Microsoft YaHei',sans-serif;}
+body{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#2575fc 0%,#6a11cb 100%);
+  overflow:hidden;
+}
+.box{
+  background:white;
+  border-radius:20px;
+  padding:40px 35px;
+  width:320px;
+  text-align:center;
+  box-shadow:0 10px 25px rgba(0,0,0,0.25);
+  animation:slideUp 0.6s ease;
+}
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(50px);}
+  to{opacity:1;transform:translateY(0);}
+}
+h2{margin-bottom:25px;color:#2c3e50;}
+input{
+  width:100%;
+  padding:12px;
+  margin-bottom:18px;
+  border:1px solid #ccc;
+  border-radius:10px;
+  font-size:15px;
+  transition:border-color .2s;
+}
+input:focus{border-color:#6a11cb;outline:none;}
+button{
+  width:100%;
+  padding:12px;
+  background:linear-gradient(90deg,#2575fc,#6a11cb);
+  border:none;
+  border-radius:10px;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+  font-size:16px;
+  transition:transform .2s, box-shadow .2s;
+}
+button:hover{
+  transform:scale(1.05);
+  box-shadow:0 5px 10px rgba(106,17,203,0.3);
+}
+p{
+  margin-top:15px;
+  font-size:14px;
+  color:#2575fc;
+  cursor:pointer;
+  transition:color .2s;
+}
+p:hover{color:#6a11cb;}
+.back{
+  position:absolute;
+  top:20px;
+  left:20px;
+  color:white;
+  text-decoration:none;
+  font-weight:bold;
+  background:rgba(0,0,0,0.2);
+  padding:8px 12px;
+  border-radius:6px;
+  transition:background .3s;
+}
+.back:hover{background:rgba(0,0,0,0.35);}
+</style>
+</head>
+<body>
+<a href="index.html" class="back">← 返回首页</a>
+<div class="box">
+  <h2>注册账号</h2>
+  <input type="text" id="username" placeholder="用户名">
+  <input type="password" id="password" placeholder="密码">
+  <button id="register">注册</button>
+  <p id="toLogin">已有账号？点击登录</p>
+</div>
+<script>
+document.getElementById('toLogin').addEventListener('click',()=>location.href='login.html');
+document.getElementById('register').addEventListener('click',async()=>{
+  const username=document.getElementById('username').value.trim();
+  const password=document.getElementById('password').value.trim();
+  if(!username||!password)return alert('请输入完整信息');
+  try{
+    const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    const data=await r.json();
+    if(!r.ok)return alert(data.error||'注册失败');
+    alert('注册成功，请登录');
+    location.href='login.html';
+  }catch(e){alert('请求失败：'+e.message);}
+});
+</script>
+</body>
+</html>
